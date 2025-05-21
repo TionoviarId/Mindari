@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 
 // Dynamic import untuk menonaktifkan SSR di Grafik
 const Grafik = dynamic(() => import('./components/homepage/grafik'), { ssr: false });
@@ -411,15 +412,48 @@ export default function Home() {
         {/* Edukasi Section */}
         <h3 className="text-3xl font-bold mt-16 mb-8 text-[#123C62]">Edukasi</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {['Kecemasan', 'Pola Tidur', 'Stress', 'Kelola Emosi'].map((topic, idx) => (
+          {[
+            {
+              topic: 'Kecemasan',
+              desc: 'Pelajari bagaimana mengelola kecemasan dengan lebih baik.',
+              image: '/assets/images/1.png' // Pastikan path ini benar!
+            },
+            {
+              topic: 'Pola Tidur',
+              desc: 'Pelajari bagaimana mengelola pola tidur dengan lebih baik.',
+              image: '/assets/images/4.png' // Pastikan path ini benar!
+            },
+            {
+              topic: 'Stress',
+              desc: 'Pelajari bagaimana mengelola stress dengan lebih baik.',
+              image: '/assets/images/3.png' // Pastikan path ini benar!
+            },
+            {
+              topic: 'Kelola Emosi',
+              desc: 'Pelajari bagaimana mengelola emosi dengan lebih baik.',
+              image: '/assets/images/2.png' // Pastikan path ini benar!
+            },
+          ].map((item, idx) => (
             <div
               key={idx}
-              className="bg-[#1d5995] rounded-3xl p-6 h-44 flex flex-col justify-end shadow-md hover:brightness-110 transition duration-300 cursor-pointer"
+              // Tambahkan relative dan overflow-hidden pada div card
+              className="bg-[#1d5995] rounded-3xl p-6 h-44 flex flex-col justify-end shadow-md hover:brightness-110 transition duration-300 cursor-pointer relative overflow-hidden"
             >
-              <h4 className="text-2xl font-extrabold text-white mb-2">{topic}</h4>
-              <p className="text-sm text-white/90">
-                Pelajari bagaimana mengelola {topic.toLowerCase()} dengan lebih baik.
-              </p>
+              {/* Tag <img> ditambahkan di sini */}
+              <Image
+  src={item.image}
+  alt={item.topic}
+  layout="fill" // <-- Gunakan layout="fill" agar gambar mengisi parent div
+  objectFit="cover" // <-- Memastikan gambar menutupi seluruh area tanpa distorsi
+  className="opacity-30 group-hover:opacity-40 transition-opacity duration-300 rounded-3xl"
+/>
+              {/* Konten teks (judul dan deskripsi) dibungkus agar berada di atas gambar */}
+              <div className="relative z-10">
+                  <h4 className="text-2xl font-extrabold text-white mb-2">{item.topic}</h4>
+                  <p className="text-sm text-white/90">
+                  {item.desc}
+                  </p>
+              </div>
             </div>
           ))}
         </div>
