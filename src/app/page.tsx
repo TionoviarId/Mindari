@@ -63,7 +63,7 @@ const getMoodPredicate = (history: MoodEntry[]): string => {
   const numDays = recentMoods.length;
 
   if (numDays < 2) { // Minimal 2 hari untuk analisis awal
-    return `Kumpulkan setidaknya 2 hari mood untuk analisis. Kamu baru punya ${numDays} hari.`;
+    return `Kumpulkan setidaknya **2 hari** mood untuk analisis. Kamu baru punya ${numDays} hari.`;
   }
 
   let totalMoodScore = 0;
@@ -92,13 +92,14 @@ const getMoodPredicate = (history: MoodEntry[]): string => {
     timePeriodText = `Selama ${numDays} hari ini`;
   }
 
-  if (averageMood >= 5.0) {
-    return `${timePeriodText}, moodmu lagi sangat positif! Pertahankan ya.`;
-  } else if (averageMood >= 4.0) {
+  // Predikat disesuaikan untuk lebih halus
+  if (averageMood >= 4.5) { // Sangat Positif (lebih ketat)
+    return `${timePeriodText}, moodmu lagi sangat positif! Luar biasa!`;
+  } else if (averageMood >= 3.5) { // Cukup Positif/Stabil
     return `${timePeriodText}, moodmu lagi cukup stabil dan positif. Terus semangat!`;
-  } else if (averageMood >= 3.0) {
+  } else if (averageMood >= 2.5) { // Sedikit Kurang Baik (batas tengah)
     return `${timePeriodText}, moodmu sedikit kurang baik. Jangan lupa beri waktu untuk diri sendiri.`;
-  } else { // averageMood < 2.0
+  } else { // averageMood < 2.5 (Perlu Perhatian)
     return `${timePeriodText}, moodmu lagi butuh perhatian lebih. Ada apa? Yuk cerita atau istirahat sebentar!`;
   }
 };
@@ -107,7 +108,18 @@ const getMoodPredicate = (history: MoodEntry[]): string => {
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [note, setNote] = useState('');
-  const [history, setHistory] = useState<MoodEntry[]>([]);
+  const [history, setHistory] = useState<MoodEntry[]>([]
+    // Contoh data dummy untuk pengujian, bisa dihapus nanti
+    // [
+    //   { mood: '😍', note: 'Senang banget!', date: '2025-05-21', savedAt: Date.now() - (1 * 24 * 60 * 60 * 1000) },
+    //   { mood: '😆', note: 'Cukup happy', date: '2025-05-20', savedAt: Date.now() - (2 * 24 * 60 * 60 * 1000) },
+    //   { mood: '🙂', note: 'Biasa aja', date: '2025-05-19', savedAt: Date.now() - (3 * 24 * 60 * 60 * 1000) },
+    //   { mood: '😔', note: 'Lagi bad mood', date: '2025-05-18', savedAt: Date.now() - (4 * 24 * 60 * 60 * 1000) },
+    //   { mood: '😍', note: 'Super happy', date: '2025-05-17', savedAt: Date.now() - (5 * 24 * 60 * 60 * 1000) },
+    //   { mood: '😆', note: 'Lumayan', date: '2025-05-16', savedAt: Date.now() - (6 * 24 * 60 * 60 * 1000) },
+    //   { mood: '🙂', note: 'Oke aja', date: '2025-05-15', savedAt: Date.now() - (7 * 24 * 60 * 60 * 1000) },
+    // ]
+  );
   const [selected, setSelected] = useState<Mood | null>(null);
 
   // State untuk menyimpan predikat mood
@@ -167,7 +179,7 @@ export default function Home() {
       alert('Pilih mood dulu ya!');
       return;
     }
-    const today = new Date().toLocaleDateString('sv-SE'); // hasil: '2025-05-22'
+    const today = new Date().toLocaleDateString('sv-SE'); // hasil: 'YYYY-MM-DD'
 
     const existIndex = history.findIndex((h) => h.date === today);
     const newEntry: MoodEntry = {
@@ -181,7 +193,8 @@ export default function Home() {
       newHistory = [...history];
       newHistory[existIndex] = newEntry;
     } else {
-      newHistory = [...history, newEntry];
+      // Tambahkan entri baru di awal array untuk mempermudah sorting descending
+      newHistory = [newEntry, ...history];
     }
     setHistory(newHistory);
     setNote('');
@@ -333,7 +346,7 @@ export default function Home() {
               disabled
               name=""
               placeholder={selected ? moodText[selected] : 'Pilih mood untuk melihat deskripsi'}
-              className="flex-grow w-full bg-white rounded-2xl px-5 py-3 text-sm shadow-md border border-gray-300"
+              className="flex-grow w-full rounded-2xl px-1 py-3 text-sm "
             />
           </div>
 
@@ -362,19 +375,26 @@ export default function Home() {
               </h5>
               <ul className="space-y-3 max-h-64 overflow-y-auto">
                 {[...history]
-                  .sort((a, b) => (a.date < b.date ? 1 : -1))
-                  .map(({ date, mood, note }) => (
-                    <li
-                      key={date}
-                      className="flex items-center gap-3 border-b pb-2 last:border-none"
-                    >
-                      <div className="text-3xl">{mood}</div>
-                      <div>
-                        <div className="font-semibold">{date}</div>
-                        <div className="text-gray-700">{note || '-'}</div>
-                      </div>
-                    </li>
-                  ))}
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort descending by date
+                  .map(({ date, mood, note }) => {
+                    const displayDate = new Date(date).toLocaleDateString('id-ID', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                    return (
+                      <li
+                        key={date}
+                        className="flex items-center gap-3 border-b pb-2 last:border-none"
+                      >
+                        <div className="text-3xl">{mood}</div>
+                        <div>
+                          <div className="font-semibold">{displayDate}</div>
+                          <div className="text-gray-700">{note || '-'}</div>
+                        </div>
+                      </li>
+                    );
+                  })}
               </ul>
             </>
           )}
@@ -382,7 +402,6 @@ export default function Home() {
 
         {/* Grafik Mood */}
         <div className="mt-12">
-           
             <Grafik  moodData={moodData}  />
              <div className="bg-[#E0F5FF] rounded-2xl p-3 mt-5 text-center">
         <p dangerouslySetInnerHTML={{ __html: moodPredicate }}/>
