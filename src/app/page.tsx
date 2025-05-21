@@ -210,7 +210,7 @@ export default function Home() {
             className="w-28 bg-[#E0F5FF] rounded-3xl p-5 flex flex-col items-center shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer"
           >
             <span className="text-3xl mb-3">{item.icon}</span>
-            <h3 className="font-semibold text-sm mb-1 text-[#123C62]">{item.title}</h3>
+            <h3 className="font-semibold  text-center text-sm mb-1 text-[#123C62]">{item.title}</h3>
             <p className="text-xs text-gray-600 text-center">{item.desc}</p>
           </div>
         ))}
