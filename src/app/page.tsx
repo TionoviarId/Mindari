@@ -11,7 +11,7 @@ type Mood = '😔' | '🙂' | '😆' | '😍';
 type MoodEntry = {
   mood: Mood;
   note: string;
-  date: string; // yyyy-mm-dd
+  date: string; // YYYY-MM-DD
   savedAt: number;
 };
 
@@ -24,50 +24,123 @@ const colorMapping: Record<Mood, { bg: string; text: string }> = {
   '😍': { bg: '#EF4444', text: 'white' },    // merah (senang sekali)
 };
 
+// --- Fungsi untuk Mapping Mood ke Angka ---
+const moodToNumber: Record<Mood, number> = {
+  '😔': 1,
+  '🙂': 3,
+  '😆': 4,
+  '😍': 5,
+};
+
+// --- Fungsi untuk Mengonversi History ke Data Grafik ---
+const convertHistoryToMoodData = (history: MoodEntry[]): { bulan: string; mood: number }[] => {
+  const hariMap = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const result: { [key: string]: number } = {};
+
+  history.forEach((entry) => {
+    const date = new Date(entry.date);
+    const day = hariMap[date.getDay()];
+    result[day] = moodToNumber[entry.mood];
+  });
+
+  // Urutkan hari dimulai dari Senin, kemudian Minggu di akhir
+  const orderedDays = hariMap.slice(1).concat(hariMap[0]);
+
+  return orderedDays.map((hari) => ({
+    bulan: hari,
+    mood: result[hari] || 0, // Jika tidak ada data, mood 0
+  }));
+};
+
+// --- Fungsi untuk Menentukan Predikat Mood ---
+const getMoodPredicate = (history: MoodEntry[]): string => {
+  if (history.length === 0) {
+    return 'Belum ada data mood. Yuk, catat perasaanmu hari ini!';
+  }
+
+  // Ambil data mood hingga 7 hari terakhir
+  const recentMoods = history.slice(-7);
+  const numDays = recentMoods.length;
+
+  if (numDays < 2) { // Minimal 2 hari untuk analisis awal
+    return `Kumpulkan setidaknya 2 hari mood untuk analisis. Kamu baru punya ${numDays} hari.`;
+  }
+
+  let totalMoodScore = 0;
+  recentMoods.forEach(entry => {
+    totalMoodScore += moodToNumber[entry.mood];
+  });
+
+  const averageMood = totalMoodScore / numDays;
+
+  // Teks pembuka dinamis berdasarkan jumlah hari
+  let timePeriodText = '';
+  if (numDays === 2) {
+    timePeriodText = 'Dua hari ini';
+  } else if (numDays === 3) {
+    timePeriodText = 'Tiga hari ini';
+  } else if (numDays === 4) {
+    timePeriodText = 'Empat hari terakhir ini';
+  } else if (numDays === 5) {
+    timePeriodText = 'Lima hari terakhir ini';
+  } else if (numDays === 6) {
+    timePeriodText = 'Enam hari terakhir ini';
+  } else if (numDays === 7) {
+    timePeriodText = 'Seminggu terakhir ini';
+  } else {
+    // Fallback jika ada data lebih dari 7 hari (meskipun harusnya sudah difilter WEEK_IN_MS)
+    timePeriodText = `Selama ${numDays} hari ini`;
+  }
+
+  if (averageMood >= 5.0) {
+    return `${timePeriodText}, moodmu lagi sangat positif! Pertahankan ya.`;
+  } else if (averageMood >= 4.0) {
+    return `${timePeriodText}, moodmu lagi cukup stabil dan positif. Terus semangat!`;
+  } else if (averageMood >= 3.0) {
+    return `${timePeriodText}, moodmu sedikit kurang baik. Jangan lupa beri waktu untuk diri sendiri.`;
+  } else { // averageMood < 2.0
+    return `${timePeriodText}, moodmu lagi butuh perhatian lebih. Ada apa? Yuk cerita atau istirahat sebentar!`;
+  }
+};
+
+
 export default function Home() {
-  const convertHistoryToMoodData = (history: MoodEntry[]): { bulan: string; mood: number }[] => {
-    const hariMap = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-  
-    const moodMapping: Record<Mood, number> = {
-      '😔': 1,
-      '🙂': 3,
-      '😆': 4,
-      '😍': 5,
-    };
-    
-    const result: { [key: string]: number } = {};
-    
-    history.forEach((entry) => {
-      const date = new Date(entry.date);
-      const day = hariMap[date.getDay()];
-      result[day] = moodMapping[entry.mood];
-    });
-    
-    return hariMap.slice(1).concat(hariMap[0]).map((hari) => ({
-      bulan: hari,
-      mood: result[hari] || 0,
-    }));
-  };
-  
   const [isOpen, setIsOpen] = useState(false);
-  
   const [note, setNote] = useState('');
   const [history, setHistory] = useState<MoodEntry[]>([]);
+  const [selected, setSelected] = useState<Mood | null>(null);
 
-  
- 
+  // State untuk menyimpan predikat mood
+  const [moodPredicate, setMoodPredicate] = useState<string>('Belum ada data mood.');
 
-  
+  const [moodData, setMoodData] = useState([
+    { bulan: 'Sen', mood: 0 },
+    { bulan: 'Sel', mood: 0 },
+    { bulan: 'Rab', mood: 0 },
+    { bulan: 'Kam', mood: 0 },
+    { bulan: 'Jum', mood: 0 },
+    { bulan: 'Sab', mood: 0 },
+    { bulan: 'Min', mood: 0 },
+  ]);
 
- 
   const moodText: Record<Mood, string> = {
     '😔': 'Hari ini aku lagi sedih',
     '🙂': 'Hari ini aku biasa aja',
     '😆': 'Hari ini aku cukup senang',
     '😍': 'Hari ini aku senang sekali',
   };
- 
-  
+
+  const options: Mood[] = ['😔', '🙂', '😆', '😍'];
+
+  const toggleDropdown = () => setIsOpen(!isOpen);
+
+  const handleSelect = (option: Mood) => {
+    setSelected(option);
+    setIsOpen(false);
+  };
+
+  const btnColor = selected ? colorMapping[selected] : colorMapping['😍'];
+
   // Load dari localStorage dan bersihkan data > 7 hari
   useEffect(() => {
     const raw = localStorage.getItem('moodHistory');
@@ -78,14 +151,14 @@ export default function Home() {
         localStorage.setItem('moodHistory', JSON.stringify(validData));
       }
       setHistory(validData);
-      setMoodData(convertHistoryToMoodData(validData)); // <- ini bagian pentingnya
     }
   }, []);
-  
 
-  // Simpan history ke localStorage tiap ada perubahan
+  // Effect untuk memperbarui moodData dan moodPredicate setiap kali history berubah
   useEffect(() => {
     localStorage.setItem('moodHistory', JSON.stringify(history));
+    setMoodData(convertHistoryToMoodData(history));
+    setMoodPredicate(getMoodPredicate(history));
   }, [history]);
 
   // Simpan entry baru / update hari ini
@@ -111,49 +184,9 @@ export default function Home() {
       newHistory = [...history, newEntry];
     }
     setHistory(newHistory);
-    setMoodData(convertHistoryToMoodData(newHistory)); // <- tambahan ini
     setNote('');
     alert('Data mood hari ini tersimpan!');
-    
   };
-
-  const [selected, setSelected] = useState<Mood | null>(null);
-  const [moodData, setMoodData] = useState([
-    { bulan: 'Sen', mood: 0 },
-    { bulan: 'Sel', mood: 0 },
-    { bulan: 'Rab', mood: 0 },
-    { bulan: 'Kam', mood: 0 },
-    { bulan: 'Jum', mood: 0 },
-    { bulan: 'Sab', mood: 0 },
-    { bulan: 'Min', mood: 0 },
-  ]);
-
-  const options: Mood[] = ['😔', '🙂', '😆', '😍'];
-
-  const toggleDropdown = () => setIsOpen(!isOpen);
-
-  const handleSelect = (option: Mood) => {
-    setSelected(option);
-    setIsOpen(false);
-
-    // Update moodData berdasarkan pilihan mood
-    // Misal mapping mood ke angka 1-5
-    const moodMapping: Record<Mood, number> = {
-      '😔': 1,
-      '🙂': 3,
-      '😆': 4,
-      '😍': 5,
-    };
-
-    setMoodData((prev) => {
-      // Update mood Senin (index 0) dengan mood yang dipilih
-      const newMoodData = [...prev];
-      newMoodData[0] = { ...newMoodData[0], mood: moodMapping[option] };
-      return newMoodData;
-    });
-  };
-
-  const btnColor = selected ? colorMapping[selected] : colorMapping['😍'];
 
   return (
     <div className="bg-white text-gray-900 font-sans min-h-screen flex flex-col">
@@ -349,7 +382,11 @@ export default function Home() {
 
         {/* Grafik Mood */}
         <div className="mt-12">
-          <Grafik  moodData={moodData}  />
+           
+            <Grafik  moodData={moodData}  />
+             <div className="bg-[#E0F5FF] rounded-2xl p-3 mt-5 text-center">
+        <p dangerouslySetInnerHTML={{ __html: moodPredicate }}/>
+      </div>
         </div>
 
         {/* Edukasi Section */}
@@ -367,7 +404,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-        
+
       </section>
            {/* Footer */}
            <footer className="flex justify-center items-center py-10 bg-white shadow-inner mt-auto">
@@ -375,7 +412,7 @@ export default function Home() {
           &copy; 2025 Mindari. All rights reserved.
         </span>
       </footer>
-      
+
     </div>
   );
 }

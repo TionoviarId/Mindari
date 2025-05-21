@@ -34,9 +34,7 @@ function Grafik({ moodData }: GrafikProps) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className="bg-[#E0F5FF] rounded-2xl p-3 mt-5 text-center">
-        <p>Moodmu lagi bagus nih minggu ini</p>
-      </div>
+     
     </div>
   );
 }
