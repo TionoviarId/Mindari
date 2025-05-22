@@ -64,7 +64,7 @@ const getMoodPredicate = (history: MoodEntry[]): string => {
   const numDays = recentMoods.length;
 
   if (numDays < 2) { // Minimal 2 hari untuk analisis awal
-    return `Kumpulkan setidaknya **2 hari** mood untuk analisis. Kamu baru punya ${numDays} hari.`;
+    return `Kumpulkan setidaknya 2 hari mood untuk analisis. Kamu baru punya ${numDays} hari.`;
   }
 
   let totalMoodScore = 0;
